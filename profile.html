@@ -1,0 +1,287 @@
+﻿<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <title>Finance Tracker App</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <link href="css/font-awesome.min.css" rel="stylesheet" />
+    <link href="css/jquery.mobile.min.css" rel="stylesheet" />
+    <link href="css/waves.min.css" rel="stylesheet" />
+    <link href="css/animate.css" rel="stylesheet" />
+    <link href="css/style.css" rel="stylesheet" />
+    <link href="css/nativedroid2.css" rel="stylesheet" />
+
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+</head>
+<body>
+    <div data-role="page">
+        <!-- panel left -->
+        <div data-role="panel" id="leftpanel" data-display="overlay" data-position-fixed="true">
+            <div class='nd2-sidepanel-profile wow fadeInDown'>
+                <img class='profile-background' src="images/profileBackground.jpg" />
+                <div class="row">
+                    <div class='col-xs-4 center-xs'>
+                        <div class='box'>
+                            <img class="profile-thumbnail" src="images/profile.png" />
+                        </div>
+                    </div>
+                    <div class='col-xs-8'>
+                        <div class='box profile-text'>
+                            <strong>Finance Tracker</strong>
+                            <span class='subline' id="spName">Person Name</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <ul data-role="listview" data-inset="false" data-icon="false">
+                <li><a href="profile.html" data-icon="false" rel="external"><i class="zmdi zmdi-home zmd-fw"></i>Home</a></li>
+                <li><a href="add_expense.html" data-icon="false" rel="external"><i class="zmdi zmdi-plus-circle-o-duplicate zmd-fw"></i>Add</a></li>
+                <li><a href="list.html" data-icon="false" rel="external"><i class="zmdi zmdi-format-list-bulleted zmd-fw"></i>Show All</a></li>
+                <li><a href="today_expenses.html" data-icon="false" rel="external"><i class="zmdi zmdi-calendar-check zmd-fw"></i>Show Today</a></li>
+                <li><a href="expense_date.html" data-icon="false" rel="external"><i class="zmdi zmdi-calendar zmd-fw"></i>Show by Date</a></li>
+                <li><a href="setting.html" data-icon="false" rel="external"><i class="zmdi zmdi-settings zmd-fw"></i>Setting</a></li>
+                <li><a href="#" id="lnkSignOut"><i class="zmdi zmdi-power-off zmd-fw"></i>Sign Out</a></li>
+            </ul>
+
+        </div>
+        <!-- /panel left -->
+
+        <div data-role="header" data-position="fixed" class="wow fadeInDown" data-wow-delay="0.2s">
+            <a href="#leftpanel" class="ui-btn ui-btn-left wow fadeIn" data-wow-delay='0.8s'><i class="zmdi zmdi-menu"></i></a>
+            <h1 class="wow fadeIn" data-wow-delay='0.4s'>Finance Tracker</h1>
+        </div>
+        <div role="main" class="ui-content" data-inset="false">
+            <span class="nd2-title"><i class="zmdi zmdi-chart zmd-fw"></i>Dashboard</span>
+            <div class="row">
+                <div class="col-xs-12 col-md-4">
+                    <div class="box">
+                        <div class="nd2-chart ct-piechart"></div>
+                    </div>
+                </div>
+                <div class="col-xs-12 col-md-4">
+                    <div class="box">
+                        <div class="nd2-chart ct-barchart2"></div>
+                    </div>
+                </div>
+                <div class="col-xs-12 col-md-4">
+                    <div class="box">
+                        <div class="nd2-chart ct-barchart3"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/jquery.min.js"></script>
+    <script src="js/jquery-ui.min.js"></script>
+    <script src="js/jquery.mobile.min.js"></script>
+    <script src="js/waves.min.js"></script>
+    <script src="js/wow.min.js"></script>
+    <script src="js/chartist.min.js"></script>
+    <script src="js/nativedroid2.js"></script>
+    <script src="js/nd2settings.js"></script>
+
+    <script>
+        var db = openDatabase("ExpenseDb", "1.0", "App Expense", 200000);  // Open SQLite Database
+        var dataset;
+
+        new $.nd2Search({
+            placeholder: "Search",
+            defaultIcon: "globe-alt",
+            source: [
+                { "label": "Afghanistan", "value": "AF" },
+                { "label": "Zimbabwe", "value": "ZW" }
+            ],
+            fn: function (result) {
+                console.log('--- Your custom handling ---');
+                console.log('you picked: ');
+                console.log(result);
+            }
+        });
+
+
+        // Bar Chart Example 2
+        var pieArray = [0, 0];
+        var bc2_data;
+        var bc2_options = {
+            seriesBarDistance: 2
+        };
+        getAllMonthExpense();
+        function getAllMonthExpense() {
+            db.transaction(function (tx) {
+                tx.executeSql("select * from expense", [], function (tx, result) {
+                    dataset = result.rows;
+                    if (dataset.length > 0) {
+                        var serArrayOut = [];
+                        var serArrayIn = [];
+                        for (var i = 0; i < 12; i++) {
+                            serArrayOut[i] = 0;
+                            serArrayIn[i] = 0;
+                        }
+                        for (var i = 0; i < dataset.length; i++) {
+                            var month = dataset.item(i).expDate.split('/');
+                            var m = getMonthIndex(month[1]);
+
+                            if (dataset.item(i).expType == "In-Comming") {
+                                pieArray[0] += parseFloat(dataset.item(i).expAmount);
+                                serArrayIn[m] += parseFloat(dataset.item(i).expAmount);
+                            }
+                            else {
+                                pieArray[1] += parseFloat(dataset.item(i).expAmount);
+                                serArrayOut[m] += parseFloat(dataset.item(i).expAmount);
+                            }
+                        }
+
+                        bc2_data = {
+                            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                            series: [
+                                serArrayOut
+                            ]
+                        };
+
+                        var bc2_dataIn = {
+                            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                            series: [
+                                serArrayIn
+                            ]
+                        };
+
+                        var bc2 = new Chartist.Bar('.ct-barchart2', bc2_data, bc2_options);
+                        new Chartist.Bar('.ct-barchart-theme', bc2_data, bc2_options);
+                        $('.ct-barchart2').append('<span style="margin-left:34%;font-size: .75rem;">Out Going Amount Report</span>');
+
+                        bc2 = new Chartist.Bar('.ct-barchart3', bc2_dataIn, bc2_options);
+                        new Chartist.Bar('.ct-barchart-theme', bc2_dataIn, bc2_options);
+                        $('.ct-barchart3').append('<span style="margin-left:34%;font-size: .75rem;">In Comming Amount Report</span>');
+                        ////////////////////////////////////////////////
+                        /// Pie Chart
+
+                        var pc1_data = {
+                            series: pieArray
+                        };
+
+                        var pc1_sum = function (a, b) { return a + b };
+                        var flag = false;
+                        new Chartist.Pie('.ct-piechart', pc1_data, {
+                            labelInterpolationFnc: function (value) {
+                                if (flag == false) {
+                                    flag = true;
+                                    if (value == 0)
+                                        return '';
+                                    return Math.round(value / pc1_data.series.reduce(pc1_sum) * 100) + '% In (£' + value + ')';
+                                }
+                                else {
+                                    flag = false;
+                                    if (value == 0)
+                                        return '';
+                                    return Math.round(value / pc1_data.series.reduce(pc1_sum) * 100) + '% Out (£' + value + ')';
+
+                                }
+                            }
+                        });
+                        $('.ct-piechart').append('<span style="margin-left:37%;font-size: .75rem;">Overall Amount Report</span>');
+                    }
+                    else {
+                    }
+                });
+            });
+        }
+
+        function getMonthIndex(m) {
+            switch (m) {
+                case '1':
+                case '01':
+                    return 0;
+                    break;
+                case '2':
+                case '02':
+                    return 1;
+                    break;
+                case '3':
+                case '03':
+                    return 2;
+                    break;
+                case '4':
+                case '04':
+                    return 3;
+                    break;
+                case '5':
+                case '05':
+                    return 4;
+                    break;
+                case '6':
+                case '06':
+                    return 5;
+                    break;
+                case '7':
+                case '07':
+                    return 6;
+                    break;
+                case '8':
+                case '08':
+                    return 7;
+                    break;
+                case '9':
+                case '09':
+                    return 8;
+                    break;
+                case '10':
+                    return 9;
+                    break;
+                case '11':
+                    return 10;
+                    break;
+                case '12':
+                    return 11;
+                    break;
+            }
+        }
+
+
+
+    </script>
+
+    <script>
+        if (readCookie("uid") != null) {
+            $('#spName').html(readCookie("uName"));
+        }
+
+        $('#lnkSignOut').click(function () {
+            eraseCookie("uid");
+            eraseCookie("uName");
+            document.location.href = "index.html";
+        });
+
+        ////////////////////////////////////
+        // For Cookie
+        ///// Create cookie
+        function createCookie(name, value, days) {
+            if (days) {
+                var date = new Date();
+                date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+                var expires = "; expires=" + date.toGMTString();
+            }
+            else var expires = "";
+            document.cookie = name + "=" + value + expires + "; path=/";
+        }
+
+        function eraseCookie(name) {
+            createCookie(name, "", -1);
+        }
+
+        function readCookie(name) {
+            var nameEQ = name + "=";
+            var ca = document.cookie.split(';');
+            for (var i = 0; i < ca.length; i++) {
+                var c = ca[i];
+                while (c.charAt(0) == ' ') c = c.substring(1, c.length);
+                if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length, c.length);
+            }
+            return null;
+        }
+                        /////////////////////////////////////////
+
+    </script>
+</body>
+</html>

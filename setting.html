@@ -1,0 +1,228 @@
+﻿<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <title>Finance Tracker App</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <link href="css/font-awesome.min.css" rel="stylesheet" />
+    <link href="css/jquery.mobile.min.css" rel="stylesheet" />
+    <link href="css/waves.min.css" rel="stylesheet" />
+    <link href="css/animate.css" rel="stylesheet" />
+    <link href="css/nativedroid2.css" rel="stylesheet" />
+
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+</head>
+<body>
+    <div data-role="page">
+        <!-- panel left -->
+        <div data-role="panel" id="leftpanel" data-display="overlay" data-position-fixed="true">
+            <div class='nd2-sidepanel-profile wow fadeInDown'>
+                <img class='profile-background' src="images/profileBackground.jpg" />
+                <div class="row">
+                    <div class='col-xs-4 center-xs'>
+                        <div class='box'>
+                            <img class="profile-thumbnail" src="images/profile.png" />
+                        </div>
+                    </div>
+                    <div class='col-xs-8'>
+                        <div class='box profile-text'>
+                            <strong>Finance Tracker</strong>
+                            <span class='subline' id="spName">Person Name</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <ul data-role="listview" data-inset="false" data-icon="false">
+                <li><a href="profile.html" data-icon="false" rel="external"><i class="zmdi zmdi-home zmd-fw"></i>Home</a></li>
+                <li><a href="add_expense.html" data-icon="false" rel="external"><i class="zmdi zmdi-plus-circle-o-duplicate zmd-fw"></i>Add</a></li>
+                <li><a href="list.html" data-icon="false" rel="external"><i class="zmdi zmdi-format-list-bulleted zmd-fw"></i>Show All</a></li>
+                <li><a href="today_expenses.html" data-icon="false" rel="external"><i class="zmdi zmdi-calendar-check zmd-fw"></i>Show Today</a></li>
+                <li><a href="expense_date.html" data-icon="false" rel="external"><i class="zmdi zmdi-calendar zmd-fw"></i>Show by Date</a></li>
+                <li><a href="setting.html" data-icon="false" rel="external"><i class="zmdi zmdi-settings zmd-fw"></i>Setting</a></li>
+                <li><a href="#" id="lnkSignOut"><i class="zmdi zmdi-power-off zmd-fw"></i>Sign Out</a></li>
+            </ul>
+
+        </div>
+        <!-- /panel left -->
+
+        <div data-role="header" data-position="fixed" class="wow fadeInDown" data-wow-delay="0.2s">
+            <a href="#leftpanel" class="ui-btn ui-btn-left wow fadeIn" data-wow-delay='0.8s'><i class="zmdi zmdi-menu"></i></a>
+            <h1 class="wow fadeIn" data-wow-delay='0.4s'>Finance Tracker</h1>
+        </div>
+        <div role="main" class="ui-content" data-inset="false">
+            <form id="frmUser">
+                <div class="row">
+                    <div class="col-xs-12 col-sm-12 col-md-12">
+                        <div class="box">
+                            <label for="txtName">Your Name:</label>
+                            <input type="text" required="required" name="txtName" id="txtName" value="" data-clear-btn="true" placeholder="Name">
+                            <label for="txtEmail">Email:</label>
+                            <input type="email" required="required" name="txtEmail" id="txtEmail" value="" data-clear-btn="true" placeholder="Email">
+                            <label for="txtPassword">Password:</label>
+                            <input type="password" required="required" name="txtPassword" id="txtPassword" value="" data-clear-btn="true" placeholder="Password">
+                            <button id="btnAdd" class="ui-btn ui-btn-raised clr-primary" value="Add Expense" type="submit">Update Information</button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="js/jquery.min.js"></script>
+    <script src="js/jquery-ui.min.js"></script>
+    <script src="js/jquery.mobile.min.js"></script>
+    <script src="js/waves.min.js"></script>
+    <script src="js/wow.min.js"></script>
+    <script src="js/nativedroid2.js"></script>
+    <script src="js/nd2settings.js"></script>
+    <script>
+        ///////////////////////////////////////////////////////////////////////////
+        /////////////// Create the database
+        var insertUser = "INSERT INTO user (userName, userEmail, userPassword) VALUES (?, ?, ?)";
+        var updateUser = "Update user set userName = ?, userEmail = ?, userPassword = ? Where userId = ?";
+        var db = openDatabase("ExpenseDb", "1.0", "App Expense", 200000);  // Open SQLite Database
+        var dataset;
+        var DataType;
+
+        if (readCookie("uid") != null) {
+            editExpense();
+        }
+        function editExpense() {
+            var id = readCookie("uid");
+            db.transaction(function (tx) {
+                tx.executeSql("Select * from user where userId = ?", [id], function (tx, result) {
+                    dataset = result.rows;
+                    if (dataset.length > 0) {
+                        $('#txtName').val(dataset.item(0).userName);
+                        $('#txtEmail').val(dataset.item(0).userEmail);
+                        $('#txtPassword').val(dataset.item(0).userPassword);
+                    }
+                });
+            });
+        }
+
+        $("#frmUser").submit(function (e) {
+            e.preventDefault();
+            var insertedId = 0;
+            var postData = $('#frmUser').serializeArray();
+
+            if (readCookie("uid") == null) {
+                db.transaction(function (tx) {
+                    tx.executeSql(insertUser, [postData[0].value, postData[1].value, postData[2].value],
+                        onSuccess, onError);
+                });
+            }
+            else {
+                db.transaction(function (tx) {
+                    var id = readCookie("uid");
+                    tx.executeSql(updateUser, [postData[0].value, postData[1].value, postData[2].value, id],
+                        onSuccess, onError);
+                });
+            }
+        });
+
+        function onSuccess(tx, results) // Function for Hendeling Success...
+        {
+            showMessage('Information Updated.');
+            //location.href = "profile.html";
+        }
+        function onError(tx, error) // Function for Hendeling Error...
+        {
+            alert(error.message);
+        }
+
+        ////////////////////////////////////
+        // For Cookie
+        ///// Create cookie
+        function createCookie(name, value, days) {
+            if (days) {
+                var date = new Date();
+                date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+                var expires = "; expires=" + date.toGMTString();
+            }
+            else var expires = "";
+            document.cookie = name + "=" + value + expires + "; path=/";
+        }
+
+        function eraseCookie(name) {
+            createCookie(name, "", -1);
+        }
+
+        function readCookie(name) {
+            var nameEQ = name + "=";
+            var ca = document.cookie.split(';');
+            for (var i = 0; i < ca.length; i++) {
+                var c = ca[i];
+                while (c.charAt(0) == ' ') c = c.substring(1, c.length);
+                if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length, c.length);
+            }
+            return null;
+        }
+        function showMessage(msg) {
+            new $.nd2Toast({
+                message: msg,
+                ttl: 4000
+            });
+        }
+    </script>
+    <script>
+        if (readCookie("uid") != null) {
+            $('#spName').html(readCookie("uName"));
+        }
+
+        $('#lnkSignOut').click(function () {
+            eraseCookie("uid");
+            eraseCookie("uName");
+            document.location.href = "index.html";
+        });
+
+        ////////////////////////////////////
+        // For Cookie
+        ///// Create cookie
+        function createCookie(name, value, days) {
+            if (days) {
+                var date = new Date();
+                date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+                var expires = "; expires=" + date.toGMTString();
+            }
+            else var expires = "";
+            document.cookie = name + "=" + value + expires + "; path=/";
+        }
+
+        function eraseCookie(name) {
+            createCookie(name, "", -1);
+        }
+
+        function readCookie(name) {
+            var nameEQ = name + "=";
+            var ca = document.cookie.split(';');
+            for (var i = 0; i < ca.length; i++) {
+                var c = ca[i];
+                while (c.charAt(0) == ' ') c = c.substring(1, c.length);
+                if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length, c.length);
+            }
+            return null;
+        }
+                    /////////////////////////////////////////
+
+    </script>
+    <!--<script>
+        new $.nd2Search({
+            placeholder: "Search",
+            defaultIcon: "globe-alt",
+            source: [
+                { "label": "Afghanistan", "value": "AF" },
+                { "label": "Zimbabwe", "value": "ZW" }
+            ],
+            fn: function (result) {
+                console.log('--- Your custom handling ---');
+                console.log('you picked: ');
+                console.log(result);
+            }
+        });
+
+
+    </script>-->
+</body>
+</html>

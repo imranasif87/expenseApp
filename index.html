@@ -1,0 +1,153 @@
+﻿<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <title>Finance Tracker App</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <link href="css/font-awesome.min.css" rel="stylesheet" />
+    <link href="css/jquery.mobile.min.css" rel="stylesheet" />
+    <link href="css/waves.min.css" rel="stylesheet" />
+    <link href="css/animate.css" rel="stylesheet" />
+    <link href="css/nativedroid2.css" rel="stylesheet" />
+
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+</head>
+<body>
+    <div data-role="page">
+        <div data-role="header" data-position="fixed" class="wow fadeInDown" data-wow-delay="0.2s">
+            <a href="#leftpanel" class="ui-btn ui-btn-left wow fadeIn" data-wow-delay='0.8s'><i class="zmdi zmdi-menu"></i></a>
+            <h1 class="wow fadeIn" data-wow-delay='0.6s'>Finance Tracker</h1>
+        </div>
+        <div role="main" class="ui-content" data-inset="false">
+            <form id="frmLogin">
+                <h4>Login</h4>
+                <label for="txtEmail">Email</label>
+                <input type="email" name="txtEmail" required="required" id="txtEmail" value="" data-clear-btn="true" placeholder="Type your email...">
+
+                <label for="txtPassword">Password</label>
+                <input type="password" name="txtPassword" required="required" id="txtPassword" value="" data-clear-btn="true" placeholder="Type your password...">
+                <button id="btnUser" class="ui-btn ui-btn-raised clr-primary" onclick="isUserExist()" type="button">Login</button>
+
+                <!--<a href="profile.html" rel="external" class="ui-btn ui-btn-raised clr-primary"><i class="zmdi zmdi-mail-send"></i> Submit</a>-->
+            </form>
+        </div>
+        <label style="color:red;margin-left:1%;">*Note: First time login without credentials. You can set the credentials from your setting page.</label>
+    </div>
+
+    <script src="js/jquery.min.js"></script>
+    <script src="js/jquery-ui.min.js"></script>
+    <script src="js/jquery.mobile.min.js"></script>
+    <script src="js/waves.min.js"></script>
+    <script src="js/wow.min.js"></script>
+    <script src="js/nativedroid2.js"></script>
+    <script src="js/nd2settings.js"></script>
+
+    <script>
+        if (readCookie("uid") != null) {
+            document.location.href = "profile.html";
+        }
+
+        var createExpenseTable = "CREATE TABLE IF NOT EXISTS expense (expId INTEGER PRIMARY KEY AUTOINCREMENT, expTitle TEXT, expType TEXT, expAmount TEXT, expDescription TEXT, expDate TEXT)";
+        var createUserTable = "CREATE TABLE IF NOT EXISTS user (userId INTEGER PRIMARY KEY AUTOINCREMENT, userEmail TEXT, userPassword TEXT, userName TEXT)";
+        var selectAllUser = "Select * from user";
+        var selectUser = "Select * from user where userEmail = ? and userPassword = ?";
+        var db = openDatabase("ExpenseDb", "1.0", "App Expense", 200000);  // Open SQLite Database
+        var dataset;
+        var DataType;
+
+        initDatabase();
+        function initDatabase()  // Function Call When Page is ready.
+        {
+            try {
+                if (!window.openDatabase)  // Check browser is supported SQLite or not.
+                {
+                    alert('Databases are not supported in this browser.');
+                }
+                else {
+                    createTable();  // If supported then call Function for create table in SQLite
+                }
+            }
+            catch (e) {
+                if (e == 2) {
+                    // Version number mismatch.
+                    console.log("Invalid database version.");
+                } else {
+                    console.log("Unknown error " + e + ".");
+                }
+                return;
+            }
+        }
+        function createTable()  // Function for Create Table in SQLite.
+        {
+            db.transaction(function (tx) { tx.executeSql(createExpenseTable, [], null, onError); });
+            db.transaction(function (tx) { tx.executeSql(createUserTable, [], null, onError); });
+        }
+
+        ///////////////////
+        function userLogin() {
+            var postData = $('#frmLogin').serializeArray();
+            db.transaction(function (tx) {
+                tx.executeSql(selectUser, [postData[0].value, postData[1].value], function (tx, result) {
+                    dataset = result.rows;
+                    if (dataset.length > 0) {
+                        createCookie("uid", dataset.item(0).userId, 1);
+                        createCookie("uName", dataset.item(0).userName, 1);
+                        document.location.href = "profile.html";
+                    }
+                    else {
+                        alert("Email or password is incorrect.");
+                    }
+                });
+            });
+        }
+
+        function isUserExist() {
+            db.transaction(function (tx) {
+                tx.executeSql(selectAllUser, [], function (tx, result) {
+                    dataset = result.rows;
+                    if (dataset.length > 0) {
+                        userLogin();
+                    }
+                    else {
+                        document.location.href = "profile.html";
+                    }
+                });
+            });
+        }
+
+        function onError(tx, error) // Function for Hendeling Error...
+        {
+            alert(error.message);
+        }
+
+        ////////////////////////////////////
+        // For Cookie
+        ///// Create cookie
+        function createCookie(name, value, days) {
+            if (days) {
+                var date = new Date();
+                date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+                var expires = "; expires=" + date.toGMTString();
+            }
+            else var expires = "";
+            document.cookie = name + "=" + value + expires + "; path=/";
+        }
+
+        function eraseCookie(name) {
+            createCookie(name, "", -1);
+        }
+
+        function readCookie(name) {
+            var nameEQ = name + "=";
+            var ca = document.cookie.split(';');
+            for (var i = 0; i < ca.length; i++) {
+                var c = ca[i];
+                while (c.charAt(0) == ' ') c = c.substring(1, c.length);
+                if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length, c.length);
+            }
+            return null;
+        }
+    </script>
+</body>
+</html>
